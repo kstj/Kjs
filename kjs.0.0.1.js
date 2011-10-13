@@ -35,6 +35,7 @@
  * 2011-10-13 Changed version numbering for easier understanding.
  * 2011-10-13 Combined "Table" functions into base script.
  * 2011-10-13 Added MD5 functions to our lib.
+ * 2011-10-13 Added "css_opaque" and "lightbox" functions into base script.
  * 
  * *********************************************************************
  * *********************************************************************
@@ -46,7 +47,6 @@
  * *********************************************************************
  * *********************************************************************
  */
-
 var _Kjs = Object;
 _Kjs = {
 	__version: "version 0.0.1 / Sumatra / April 27, 2011",
@@ -294,6 +294,13 @@ _Kjs.prototype("css", function(tag, value) {
 	return self;
 });
 
+_Kjs.prototype("css_opaque", function(value) {
+	var self = this;
+	self.style.opacity = value;
+	self.style.filter = "alpha(opacity=" + value * 100 + ")";
+	return self;
+});
+
 _Kjs.prototype("date", function(datesep, timesep) {
 	var self = this,
 		today = new Date(),
@@ -341,6 +348,61 @@ _Kjs.prototype("html", function(string) {
 		self = self.innerHTML;
 	}
 	return self;
+});
+
+_Kjs.prototype("lightbox", function(content, waitforready) {
+	var self = this,
+		rand_id = Math.floor(Math.random() * 1000) + 1000,
+		css_documentbody = document.body.style.overflow,
+		wrapper = $("&span").attr("id", "wrapper" + rand_id).css({"padding":"0","margin":"0"}).append($(content)),
+		lbclose = function() {
+			$("container" + rand_id).css_opaque(0).remove();
+			$("overlay" + rand_id).css_opaque(0).remove();
+			document.body.style.overflow = css_documentbody;
+		}, showcontent = function() {
+			var objwidth = (content.width ? content.width : $(content).style.width.replace(/px/, "")),
+				objheight = (content.height ? content.height : $(content).style.height.replace(/px/, ""));
+			$("container" + rand_id).css({
+				"top":"50%",
+				"left":"50%",
+				"width":objwidth,
+				"height":objheight,
+				"margin-left":-(objwidth / 2),
+				"margin-top":-(objheight / 2)
+			}).css_opaque(1.0);
+			$("overlay" + rand_id).listen("click", function() {
+				lbclose();
+			});
+		}
+		
+	waitforready = (arguments.length === 2 ? Boolean(waitforready) : false);
+	
+	$("&div").attr("id", "overlay" + rand_id).css({
+			"position":"absolute",
+			"top":"0",
+			"left":"0",
+			"height":"100%",
+			"width":"100%",
+			"background":"#000",
+			"z-index":"50",
+			"cursor":"pointer"
+		}).css_opaque(0.6).appendto($(document.body));
+	$("&div").attr("id", "container" + rand_id).css({
+			"position":"absolute",
+			"left":"-9999em",
+			"z-index":"51"
+		}).append(wrapper).appendto($(document.body));
+	$(document.body).css("overflow-y", "hidden");
+	
+	if (waitforready) {
+		$(content).listen("load", function() {
+			showcontent();
+		});
+	} else {
+		showcontent();
+	}
+	
+	return $("overlay" + rand_id);
 });
 
 _Kjs.prototype("listen", function(event, callback, stop) {
